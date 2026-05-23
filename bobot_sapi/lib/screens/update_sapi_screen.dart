@@ -7,17 +7,21 @@ import '../models/sapi_model.dart';
 import '../models/pengukuran_model.dart';
 import '../utils/calculator.dart';
 
-class InputSapiScreen extends StatefulWidget {
-  const InputSapiScreen({super.key});
+class UpdateSapiScreen extends StatefulWidget {
+  const UpdateSapiScreen({super.key});
 
   @override
-  State<InputSapiScreen> createState() => _InputSapiScreenState();
+  State<UpdateSapiScreen> createState() => _UpdateSapiScreenState();
 }
 
-class _InputSapiScreenState extends State<InputSapiScreen> {
-  final _namaController = TextEditingController();
+class _UpdateSapiScreenState extends State<UpdateSapiScreen> {
+  final _searchController = TextEditingController();
   final _lingkarDadaController = TextEditingController();
   final _targetBobotController = TextEditingController(text: '750');
+
+  List<SapiModel> _daftarSapi = [];
+  List<SapiModel> _filteredSapi = [];
+  SapiModel? _selectedSapi;
 
   DateTime _tanggal = DateTime.now();
 
@@ -30,13 +34,44 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
 
   bool _sudahHitungBobot = false;
   bool _sudahHitungTarget = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSapi();
+  }
 
   @override
   void dispose() {
-    _namaController.dispose();
+    _searchController.dispose();
     _lingkarDadaController.dispose();
     _targetBobotController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadSapi() async {
+    final data = await DBHelper.instance.getAllSapi();
+
+    setState(() {
+      _daftarSapi = data;
+      _filteredSapi = data;
+      _isLoading = false;
+    });
+  }
+
+  void _filterSapi(String keyword) {
+    setState(() {
+      _filteredSapi = _daftarSapi.where((sapi) {
+        return sapi.namaSapi.toLowerCase().contains(keyword.toLowerCase());
+      }).toList();
+
+      if (_selectedSapi != null &&
+          !_filteredSapi.any((sapi) => sapi.id == _selectedSapi!.id)) {
+        _selectedSapi = null;
+        _resetHasil();
+      }
+    });
   }
 
   Future<void> _pilihTanggal() async {
@@ -54,16 +89,28 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
     }
   }
 
-  void _hitungBobot() {
-    final nama = _namaController.text.trim();
-    final ld = double.tryParse(_lingkarDadaController.text) ?? 0;
+  void _resetHasil() {
+    setState(() {
+      _bobotSekarang = null;
+      _estimasiPakan = null;
+      _targetBobot = null;
+      _sisaBobot = null;
+      _estimasiBulan = null;
+      _tanggalPanen = null;
+      _sudahHitungBobot = false;
+      _sudahHitungTarget = false;
+    });
+  }
 
-    if (nama.isEmpty) {
+  void _hitungBobot() {
+    if (_selectedSapi == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nama sapi wajib diisi')),
+        const SnackBar(content: Text('Pilih sapi terlebih dahulu')),
       );
       return;
     }
+
+    final ld = double.tryParse(_lingkarDadaController.text) ?? 0;
 
     if (ld <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -78,10 +125,8 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
     setState(() {
       _bobotSekarang = bobot;
       _estimasiPakan = pakan;
-
       _sudahHitungBobot = true;
       _sudahHitungTarget = false;
-
       _targetBobot = null;
       _sisaBobot = null;
       _estimasiBulan = null;
@@ -114,7 +159,14 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
     });
   }
 
-  Future<void> _simpan() async {
+  Future<void> _simpanUpdate() async {
+    if (_selectedSapi == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih sapi terlebih dahulu')),
+      );
+      return;
+    }
+
     if (!_sudahHitungBobot || !_sudahHitungTarget) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Hitung bobot dan target dulu')),
@@ -122,18 +174,10 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
       return;
     }
 
-    final nama = _namaController.text.trim();
     final ld = double.tryParse(_lingkarDadaController.text) ?? 0;
 
-    final sapi = SapiModel(
-      namaSapi: nama,
-      tanggalMasuk: DateFormat('yyyy-MM-dd').format(_tanggal),
-    );
-
-    final sapiId = await DBHelper.instance.insertSapi(sapi);
-
     final pengukuran = PengukuranModel(
-      sapiId: sapiId,
+      sapiId: _selectedSapi!.id!,
       tanggal: DateFormat('yyyy-MM-dd').format(_tanggal),
       lingkarDada: ld,
       bobotSekarang: _bobotSekarang!,
@@ -150,69 +194,64 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Data berhasil disimpan')),
+      const SnackBar(content: Text('Update pengukuran berhasil disimpan')),
     );
 
     setState(() {
-      _namaController.clear();
       _lingkarDadaController.clear();
       _targetBobotController.text = '750';
-
-      _bobotSekarang = null;
-      _estimasiPakan = null;
-      _targetBobot = null;
-      _sisaBobot = null;
-      _estimasiBulan = null;
-      _tanggalPanen = null;
-
-      _sudahHitungBobot = false;
-      _sudahHitungTarget = false;
       _tanggal = DateTime.now();
     });
+
+    _resetHasil();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Input Sapi'),
+        title: const Text('Update Sapi'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _inputCard(),
-
-            if (_sudahHitungBobot) ...[
-              const SizedBox(height: 16),
-              _hasilBobotCard(),
-              const SizedBox(height: 16),
-              _targetCard(),
-            ],
-
-            if (_sudahHitungTarget) ...[
-              const SizedBox(height: 16),
-              _hasilTargetCard(),
-              const SizedBox(height: 16),
-              _grafikPrediksiCard(),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  onPressed: _simpan,
-                  icon: const Icon(Icons.save),
-                  label: const Text('Simpan Data'),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _daftarSapi.isEmpty
+              ? const Center(
+                  child: Text('Belum ada data sapi. Input sapi dulu.'),
+                )
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      _formUpdateCard(),
+                      if (_sudahHitungBobot) ...[
+                        const SizedBox(height: 16),
+                        _hasilBobotCard(),
+                        const SizedBox(height: 16),
+                        _targetCard(),
+                      ],
+                      if (_sudahHitungTarget) ...[
+                        const SizedBox(height: 16),
+                        _hasilTargetCard(),
+                        const SizedBox(height: 16),
+                        _grafikPrediksiCard(),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            onPressed: _simpanUpdate,
+                            icon: const Icon(Icons.save),
+                            label: const Text('Simpan Update'),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ],
-        ),
-      ),
     );
   }
 
-  Widget _inputCard() {
+  Widget _formUpdateCard() {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -220,17 +259,45 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Input Data Sapi',
+              'Update Pengukuran Sapi',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+
             const SizedBox(height: 16),
 
             TextField(
-              controller: _namaController,
+              controller: _searchController,
+              onChanged: _filterSapi,
               decoration: const InputDecoration(
-                labelText: 'Nama / ID Sapi',
+                labelText: 'Cari sapi',
+                prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(),
               ),
+            ),
+
+            const SizedBox(height: 12),
+
+            DropdownButtonFormField<SapiModel>(
+              value: _selectedSapi,
+              decoration: const InputDecoration(
+                labelText: 'Pilih Sapi',
+                border: OutlineInputBorder(),
+              ),
+              items: _filteredSapi.map((sapi) {
+                return DropdownMenuItem<SapiModel>(
+                  value: sapi,
+                  child: Text(sapi.namaSapi),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedSapi = value;
+                  _lingkarDadaController.clear();
+                  _targetBobotController.text = '750';
+                  _tanggal = DateTime.now();
+                });
+                _resetHasil();
+              },
             ),
 
             const SizedBox(height: 12),
@@ -239,7 +306,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
               onTap: _pilihTanggal,
               child: InputDecorator(
                 decoration: const InputDecoration(
-                  labelText: 'Tanggal',
+                  labelText: 'Tanggal Pengukuran',
                   border: OutlineInputBorder(),
                 ),
                 child: Text(DateFormat('dd/MM/yyyy').format(_tanggal)),
@@ -252,7 +319,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
               controller: _lingkarDadaController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Lingkar Dada (cm)',
+                labelText: 'Lingkar Dada Baru (cm)',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -264,7 +331,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
               height: 48,
               child: ElevatedButton(
                 onPressed: _hitungBobot,
-                child: const Text('Hitung Bobot'),
+                child: const Text('Hitung Bobot Baru'),
               ),
             ),
           ],
@@ -281,7 +348,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
           children: [
             Expanded(
               child: _infoItem(
-                title: 'Estimasi BB',
+                title: 'Estimasi BB Baru',
                 value: '${_bobotSekarang!.toStringAsFixed(1)} kg',
               ),
             ),
@@ -361,9 +428,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
               'Prediksi Pertumbuhan 6 Bulan',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-
             const SizedBox(height: 20),
-
             SizedBox(
               height: 260,
               child: LineChart(
@@ -372,14 +437,11 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
                   maxX: 6,
                   minY: _bobotSekarang! - 20,
                   maxY: data.last + 40,
-
                   gridData: const FlGridData(
                     show: true,
                     drawVerticalLine: true,
                   ),
-
                   borderData: FlBorderData(show: true),
-
                   titlesData: FlTitlesData(
                     topTitles: const AxisTitles(
                       sideTitles: SideTitles(showTitles: false),
@@ -421,7 +483,6 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
                       ),
                     ),
                   ),
-
                   lineBarsData: [
                     LineChartBarData(
                       isCurved: true,
@@ -439,9 +500,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
                 ),
               ),
             ),
-
             const SizedBox(height: 12),
-
             Column(
               children: List.generate(data.length, (index) {
                 return Padding(
