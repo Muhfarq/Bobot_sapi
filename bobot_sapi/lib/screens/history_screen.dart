@@ -5,7 +5,6 @@ import 'package:printing/printing.dart';
 
 import '../database/db_helper.dart';
 import '../models/sapi_model.dart';
-// import '../models/pengukuran_model.dart';
 import '../utils/app_theme.dart';
 import 'history_tanggal_screen.dart';
 
@@ -132,89 +131,112 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<void> _exportPdfAction() async {
     if (_selectedSapiIds.isEmpty) return;
 
-    final targetId = _selectedSapiIds.first;
-    final sapi = _daftarSapi.firstWhere((s) => s.id == targetId);
-    final daftarPengukuran =
-        await DBHelper.instance.getPengukuranBySapi(targetId);
+    final pdf = pw.Document();
+    int exportedCount = 0;
 
-    if (daftarPengukuran.isEmpty) {
-      if (!mounted) return;
-      showStyledSnackBar(context, 'Sapi yang dipilih tidak memiliki history');
-      return;
+    for (final targetId in _selectedSapiIds) {
+      final sapi = _daftarSapi.firstWhere((s) => s.id == targetId);
+      final daftarPengukuran =
+          await DBHelper.instance.getPengukuranBySapi(targetId);
+
+      if (daftarPengukuran.isEmpty) {
+        continue;
+      }
+
+      final sorted = [...daftarPengukuran];
+
+      sorted.sort((a, b) {
+        final dateA = DateTime.tryParse(a.tanggal) ?? DateTime(2000);
+        final dateB = DateTime.tryParse(b.tanggal) ?? DateTime(2000);
+        return dateA.compareTo(dateB);
+      });
+
+      final first = sorted.first;
+      final last = sorted.last;
+
+      exportedCount++;
+
+      pdf.addPage(
+        pw.MultiPage(
+          build: (context) => [
+            pw.Text(
+              'Laporan Riwayat Pengukuran Sapi',
+              style: pw.TextStyle(
+                fontSize: 20,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+            pw.SizedBox(height: 12),
+
+            pw.Text('Nama Sapi: ${sapi.namaSapi}'),
+            pw.Text(
+              'Tanggal Export: ${DateFormat('dd/MM/yyyy').format(DateTime.now())}',
+            ),
+            pw.Text('Total Pengukuran: ${sorted.length}'),
+
+            pw.SizedBox(height: 16),
+
+            pw.Text(
+              'Ringkasan Bobot',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 8),
+            pw.Text(
+              'Bobot Awal: ${first.bobotSekarang.toStringAsFixed(1)} kg',
+            ),
+            pw.Text(
+              'Bobot Terbaru: ${last.bobotSekarang.toStringAsFixed(1)} kg',
+            ),
+            pw.Text(
+              'Target Bobot: ${last.targetBobot.toStringAsFixed(1)} kg',
+            ),
+
+            pw.SizedBox(height: 20),
+
+            pw.Table.fromTextArray(
+              headers: [
+                'No',
+                'Tanggal',
+                'LD',
+                'BB',
+                'Pakan',
+                'Target',
+                'Estimasi',
+                'Panen',
+              ],
+              data: List.generate(sorted.length, (index) {
+                final p = sorted[index];
+
+                return [
+                  '${index + 1}',
+                  _formatTanggal(p.tanggal),
+                  '${p.lingkarDada.toStringAsFixed(1)} cm',
+                  '${p.bobotSekarang.toStringAsFixed(1)} kg',
+                  '${p.estimasiPakan.toStringAsFixed(1)} kg/hari',
+                  '${p.targetBobot.toStringAsFixed(1)} kg',
+                  '${p.estimasiBulan.toStringAsFixed(1)} bln',
+                  _formatTanggal(p.tanggalPanen),
+                ];
+              }),
+              headerStyle: pw.TextStyle(
+                fontWeight: pw.FontWeight.bold,
+                fontSize: 9,
+              ),
+              cellStyle: const pw.TextStyle(fontSize: 8),
+            ),
+          ],
+        ),
+      );
     }
 
-    final sorted = [...daftarPengukuran];
-    sorted.sort((a, b) {
-      final dateA = DateTime.tryParse(a.tanggal) ?? DateTime(2000);
-      final dateB = DateTime.tryParse(b.tanggal) ?? DateTime(2000);
-      return dateA.compareTo(dateB);
-    });
-
-    final first = sorted.first;
-    final last = sorted.last;
-
-    final pdf = pw.Document();
-
-    pdf.addPage(
-      pw.MultiPage(
-        build: (context) => [
-          pw.Text(
-            'Laporan Riwayat Pengukuran Sapi',
-            style: pw.TextStyle(
-              fontSize: 20,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
-          pw.SizedBox(height: 12),
-          pw.Text('Nama Sapi: ${sapi.namaSapi}'),
-          pw.Text(
-            'Tanggal Export: ${DateFormat('dd/MM/yyyy').format(DateTime.now())}',
-          ),
-          pw.Text('Total Pengukuran: ${sorted.length}'),
-          pw.SizedBox(height: 16),
-          pw.Text(
-            'Ringkasan Bobot',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 8),
-          pw.Text('Bobot Awal: ${first.bobotSekarang.toStringAsFixed(1)} kg'),
-          pw.Text('Bobot Terbaru: ${last.bobotSekarang.toStringAsFixed(1)} kg'),
-          pw.Text('Target Bobot: ${last.targetBobot.toStringAsFixed(1)} kg'),
-          pw.SizedBox(height: 20),
-          pw.Table.fromTextArray(
-            headers: [
-              'No',
-              'Tanggal',
-              'LD',
-              'BB',
-              'Pakan',
-              'Target',
-              'Estimasi',
-              'Panen',
-            ],
-            data: List.generate(sorted.length, (index) {
-              final p = sorted[index];
-
-              return [
-                '${index + 1}',
-                _formatTanggal(p.tanggal),
-                '${p.lingkarDada.toStringAsFixed(1)} cm',
-                '${p.bobotSekarang.toStringAsFixed(1)} kg',
-                '${p.estimasiPakan.toStringAsFixed(1)} kg/hari',
-                '${p.targetBobot.toStringAsFixed(1)} kg',
-                '${p.estimasiBulan.toStringAsFixed(1)} bln',
-                _formatTanggal(p.tanggalPanen),
-              ];
-            }),
-            headerStyle: pw.TextStyle(
-              fontWeight: pw.FontWeight.bold,
-              fontSize: 9,
-            ),
-            cellStyle: const pw.TextStyle(fontSize: 8),
-          ),
-        ],
-      ),
-    );
+    if (exportedCount == 0) {
+      if (!mounted) return;
+      showStyledSnackBar(
+        context,
+        'Sapi yang dipilih tidak memiliki history',
+      );
+      return;
+    }
 
     await Printing.layoutPdf(
       onLayout: (format) async => pdf.save(),
@@ -451,8 +473,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   backgroundColor: const Color(0xFF00A65F),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                onPressed:
-                    _selectedSapiIds.isEmpty ? null : _exportPdfAction,
+                onPressed: _selectedSapiIds.isEmpty ? null : _exportPdfAction,
                 icon: const Icon(Icons.file_download, color: Colors.white),
                 label: const Text(
                   'Export PDF',
