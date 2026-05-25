@@ -6,6 +6,7 @@ import '../database/db_helper.dart';
 import '../models/sapi_model.dart';
 import '../models/pengukuran_model.dart';
 import '../utils/calculator.dart';
+import '../utils/app_theme.dart';
 
 class InputSapiScreen extends StatefulWidget {
   const InputSapiScreen({super.key});
@@ -30,6 +31,13 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
 
   bool _sudahHitungBobot = false;
   bool _sudahHitungTarget = false;
+
+  // Palet warna sesuai gambar UI
+  final Color primaryGreen = const Color(0xFF004D34); // Hijau tua Appbar/Header
+  final Color accentGreen = const Color(0xFF00A76E);  // Hijau terang Tombol/Icon
+  final Color labelGreen = const Color(0xFF005C3A);   // Hijau teks label
+  final Color fieldColor = const Color(0xFFF2F2F2);   // Abu-abu input field
+  final Color lightGreenBg = const Color(0xFFEAF8F5); // Background hijau muda hasil
 
   @override
   void dispose() {
@@ -59,20 +67,17 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
     final ld = double.tryParse(_lingkarDadaController.text) ?? 0;
 
     if (nama.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nama sapi wajib diisi')),
-      );
+      showStyledSnackBar(context, 'Nama sapi wajib diisi');
       return;
     }
 
     if (ld <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lingkar dada wajib diisi')),
-      );
+      showStyledSnackBar(context, 'Lingkar dada wajib diisi');
       return;
     }
 
-    final bobot = hitungBobotSapi(ld);
+    // Menggunakan ld untuk rumus kalkulator bawaanmu
+    final bobot = hitungBobotSapi(ld); 
     final pakan = hitungEstimasiPakan(bobot);
 
     setState(() {
@@ -95,9 +100,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
     final target = double.tryParse(_targetBobotController.text) ?? 0;
 
     if (target <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Target bobot wajib diisi')),
-      );
+      showStyledSnackBar(context, 'Target bobot wajib diisi');
       return;
     }
 
@@ -116,9 +119,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
 
   Future<void> _simpan() async {
     if (!_sudahHitungBobot || !_sudahHitungTarget) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Hitung bobot dan target dulu')),
-      );
+      showStyledSnackBar(context, 'Hitung bobot dan target dulu');
       return;
     }
 
@@ -149,9 +150,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Data berhasil disimpan')),
-    );
+    showStyledSnackBar(context, 'Data berhasil disimpan');
 
     setState(() {
       _namaController.clear();
@@ -174,17 +173,43 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
-        title: const Text('Input Sapi'),
+        title: const Text('Input Sapi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: primaryGreen,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        // PADDING BAWAH DIUBAH MENJADI 160 AGAR BISA DI-SCROLL MELEWATI NAVBAR
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 160),
         child: Column(
           children: [
             _inputCard(),
+            const SizedBox(height: 24),
+            
+            // Tombol Hitung ditaruh di luar Card sesuai gambar UI
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: ElevatedButton(
+                onPressed: _hitungBobot,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentGreen,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'Hitung',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
 
             if (_sudahHitungBobot) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               _hasilBobotCard(),
               const SizedBox(height: 16),
               _targetCard(),
@@ -195,14 +220,19 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
               _hasilTargetCard(),
               const SizedBox(height: 16),
               _grafikPrediksiCard(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
-                height: 48,
+                height: 52,
                 child: ElevatedButton.icon(
                   onPressed: _simpan,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryGreen,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                   icon: const Icon(Icons.save),
-                  label: const Text('Simpan Data'),
+                  label: const Text('Simpan Data Sapi', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -213,111 +243,160 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
   }
 
   Widget _inputCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Input Data Sapi',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _namaController,
-              decoration: const InputDecoration(
-                labelText: 'Nama / ID Sapi',
-                border: OutlineInputBorder(),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.add, color: accentGreen, size: 28),
+              const SizedBox(width: 8),
+              Text(
+                'Input Data Sapi',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: labelGreen),
               ),
-            ),
+            ],
+          ),
+          const SizedBox(height: 24),
 
-            const SizedBox(height: 12),
+          _buildLabel('ID/Nama Sapi'),
+          const SizedBox(height: 8),
+          _buildTextField(controller: _namaController, hintText: 'A001Bima'),
+          const SizedBox(height: 18),
 
-            InkWell(
-              onTap: _pilihTanggal,
-              child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'Tanggal',
-                  border: OutlineInputBorder(),
-                ),
-                child: Text(DateFormat('dd/MM/yyyy').format(_tanggal)),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            TextField(
-              controller: _lingkarDadaController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Lingkar Dada (cm)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            SizedBox(
+          _buildLabel('Tanggal'),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: _pilihTanggal,
+            child: Container(
               width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: _hitungBobot,
-                child: const Text('Hitung Bobot'),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: fieldColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                DateFormat('dd/MM/yyyy').format(_tanggal),
+                style: const TextStyle(fontSize: 16, color: Colors.black87),
               ),
             ),
-          ],
+          ),
+          const SizedBox(height: 18),
+
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildLabel('Lingkar Dada (cm)'),
+              const SizedBox(height: 8),
+              _buildTextField(
+                controller: _lingkarDadaController,
+                hintText: '0',
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        color: labelGreen,
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hintText,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: const TextStyle(color: Colors.black38),
+        filled: true,
+        fillColor: fieldColor,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
         ),
       ),
     );
   }
 
+  // --- Hasil Bobot dengan style seperti halaman Update ---
   Widget _hasilBobotCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: _infoItem(
-                title: 'Estimasi BB',
-                value: '${_bobotSekarang!.toStringAsFixed(1)} kg',
-              ),
+    return Container(
+      decoration: BoxDecoration(
+        color: lightGreenBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accentGreen.withOpacity(0.5)),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: _infoItem(
+              title: 'Estimasi Bobot',
+              value: '${_bobotSekarang!.toStringAsFixed(0)} kg',
             ),
-            Expanded(
-              child: _infoItem(
-                title: 'Estimasi Pakan',
-                value: '${_estimasiPakan!.toStringAsFixed(1)} kg/hari',
-              ),
+          ),
+          Container(width: 1, height: 40, color: accentGreen.withOpacity(0.3)),
+          Expanded(
+            child: _infoItem(
+              title: 'Estimasi Pakan',
+              value: '${_estimasiPakan!.toStringAsFixed(1)} Kg',
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _targetCard() {
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey.shade200)),
+      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              controller: _targetBobotController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Target Bobot Panen (kg)',
-                border: OutlineInputBorder(),
-              ),
-            ),
+            _buildLabel('Target Bobot Panen (kg)'),
+            const SizedBox(height: 8),
+            _buildTextField(controller: _targetBobotController, hintText: '750', keyboardType: TextInputType.number),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
                 onPressed: _hitungTarget,
-                child: const Text('Hitung Target Panen'),
+                style: ElevatedButton.styleFrom(backgroundColor: primaryGreen, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                child: const Text('Hitung Target Panen', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -327,140 +406,109 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
   }
 
   Widget _hasilTargetCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _infoRow('Target Bobot', '${_targetBobot!.toStringAsFixed(1)} kg'),
-            _infoRow('Sisa Bobot', '${_sisaBobot!.toStringAsFixed(1)} kg'),
-            _infoRow(
-              'Estimasi Waktu',
-              '${_estimasiBulan!.toStringAsFixed(1)} bulan',
-            ),
-            _infoRow(
-              'Tanggal Panen',
-              DateFormat('dd/MM/yyyy').format(_tanggalPanen!),
-            ),
-          ],
-        ),
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: primaryGreen,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Estimasi Panen', style: TextStyle(color: Colors.white70, fontSize: 18)),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${_estimasiBulan!.toStringAsFixed(0)}',
+                style: const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.bold, height: 1.0),
+              ),
+              const SizedBox(width: 8),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 6),
+                child: Text(
+                  'Bulan\nRealistis',
+                  style: TextStyle(color: Colors.white, fontSize: 16, height: 1.2),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Divider(color: Colors.white.withOpacity(0.2)),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Target Bobot', style: TextStyle(color: Colors.white70)),
+              Text('${_targetBobot!.toStringAsFixed(1)} kg', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Sisa Bobot', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
+              Text('${_sisaBobot!.toStringAsFixed(1)} kg', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Tanggal Panen', style: TextStyle(color: Colors.white70)),
+              Text(DateFormat('dd/MM/yyyy').format(_tanggalPanen!), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _grafikPrediksiCard() {
     final data = prediksiBobot6Bulan(_bobotSekarang!);
-
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey.shade200)),
+      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Prediksi Pertumbuhan 6 Bulan',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-
+            Text('Prediksi Pertumbuhan 6 Bulan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryGreen)),
             const SizedBox(height: 20),
-
             SizedBox(
-              height: 260,
+              height: 200,
               child: LineChart(
                 LineChartData(
-                  minX: 1,
-                  maxX: 6,
-                  minY: _bobotSekarang! - 20,
-                  maxY: data.last + 40,
-
-                  gridData: const FlGridData(
-                    show: true,
-                    drawVerticalLine: true,
-                  ),
-
-                  borderData: FlBorderData(show: true),
-
+                  minX: 1, maxX: 6,
+                  minY: _bobotSekarang! - 20, maxY: data.last + 40,
+                  gridData: const FlGridData(show: false),
+                  borderData: FlBorderData(show: false),
                   titlesData: FlTitlesData(
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                     bottomTitles: AxisTitles(
-                      axisNameWidget: const Padding(
-                        padding: EdgeInsets.only(top: 8),
-                        child: Text(
-                          'Bulan',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
                       sideTitles: SideTitles(
-                        showTitles: true,
-                        interval: 1,
-                        getTitlesWidget: (value, meta) {
-                          if (value < 1 || value > 6) {
-                            return const SizedBox();
-                          }
-                          return Text('+${value.toInt()}');
-                        },
+                        showTitles: true, interval: 1,
+                        getTitlesWidget: (value, meta) => Text('+${value.toInt()}B', style: const TextStyle(fontSize: 11)),
                       ),
                     ),
-                    leftTitles: const AxisTitles(
-                      axisNameWidget: Padding(
-                        padding: EdgeInsets.only(right: 8),
-                        child: Text(
-                          'BB (kg)',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        interval: 50,
-                        reservedSize: 42,
-                      ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: true, interval: 100, reservedSize: 35, getTitlesWidget: (value, meta) => Text('${value.toInt()}', style: const TextStyle(fontSize: 11))),
                     ),
                   ),
-
                   lineBarsData: [
                     LineChartBarData(
-                      isCurved: true,
-                      barWidth: 4,
+                      isCurved: true, barWidth: 4, color: accentGreen,
                       dotData: const FlDotData(show: true),
-                      spots: List.generate(
-                        data.length,
-                        (index) => FlSpot(
-                          (index + 1).toDouble(),
-                          data[index],
-                        ),
-                      ),
+                      spots: List.generate(data.length, (index) => FlSpot((index + 1).toDouble(), data[index])),
                     ),
                   ],
                 ),
               ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Column(
-              children: List.generate(data.length, (index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      Text(
-                        '+${index + 1} Bulan',
-                        style: const TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '${data[index].toStringAsFixed(1)} kg',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                );
-              }),
             ),
           ],
         ),
@@ -468,34 +516,14 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
     );
   }
 
-  Widget _infoItem({
-    required String title,
-    required String value,
-  }) {
+  Widget _infoItem({required String title, required String value}) {
     return Column(
       children: [
-        Text(
-          value,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
+        Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: primaryGreen)),
         const SizedBox(height: 4),
-        Text(title),
+        Text(title, style: TextStyle(color: accentGreen, fontSize: 13, fontWeight: FontWeight.w500)),
       ],
     );
   }
 
-  Widget _infoRow(String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Expanded(child: Text(title)),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
 }

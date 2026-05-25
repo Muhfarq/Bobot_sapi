@@ -11,7 +11,7 @@ import 'package:bobot_sapi/main.dart';
 
 void main() {
   testWidgets('App loads correctly', (WidgetTester tester) async {
-    await tester.pumpWidget(const TernakApp());
+    await tester.pumpWidget(const MyApp());
     expect(find.text('Input Data'), findsWidgets);
   });
 }
