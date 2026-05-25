@@ -18,7 +18,7 @@ class InputSapiScreen extends StatefulWidget {
 class _InputSapiScreenState extends State<InputSapiScreen> {
   final _namaController = TextEditingController();
   final _lingkarDadaController = TextEditingController();
-  final _targetBobotController = TextEditingController(text: '750');
+  final _targetBobotController = TextEditingController();
 
   DateTime _tanggal = DateTime.now();
 
@@ -155,7 +155,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
     setState(() {
       _namaController.clear();
       _lingkarDadaController.clear();
-      _targetBobotController.text = '750';
+      _targetBobotController.clear();
 
       _bobotSekarang = null;
       _estimasiPakan = null;
@@ -274,7 +274,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
 
           _buildLabel('ID/Nama Sapi'),
           const SizedBox(height: 8),
-          _buildTextField(controller: _namaController, hintText: 'A001Bima'),
+          _buildTextField(controller: _namaController, hintText: 'ID, Nama Sapi, Nomor Kandang'),
           const SizedBox(height: 18),
 
           _buildLabel('Tanggal'),
@@ -480,6 +480,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
             Text('Prediksi Pertumbuhan 6 Bulan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryGreen)),
             const SizedBox(height: 20),
             SizedBox(
+              width: double.infinity,
               height: 200,
               child: LineChart(
                 LineChartData(

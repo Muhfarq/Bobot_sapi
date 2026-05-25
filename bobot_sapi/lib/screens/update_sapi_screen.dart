@@ -19,7 +19,7 @@ class UpdateSapiScreen extends StatefulWidget {
 class _UpdateSapiScreenState extends State<UpdateSapiScreen> {
   final _searchController = TextEditingController();
   final _lingkarDadaController = TextEditingController();
-  final _targetBobotController = TextEditingController(text: '750');
+  final _targetBobotController = TextEditingController();
 
   List<SapiModel> _daftarSapi = [];
   List<SapiModel> _filteredSapi = [];
@@ -206,7 +206,7 @@ class _UpdateSapiScreenState extends State<UpdateSapiScreen> {
 
     setState(() {
       _lingkarDadaController.clear();
-      _targetBobotController.text = '750';
+      _targetBobotController.clear();
       _tanggal = DateTime.now();
     });
 
@@ -384,7 +384,7 @@ class _UpdateSapiScreenState extends State<UpdateSapiScreen> {
               setState(() {
                 _selectedSapi = value;
                 _lingkarDadaController.clear();
-                _targetBobotController.text = '750';
+                _targetBobotController.clear();
                 _tanggal = DateTime.now();
               });
               _resetHasil();
@@ -552,6 +552,7 @@ class _UpdateSapiScreenState extends State<UpdateSapiScreen> {
           Text('Prediksi Pertumbuhan 6 Bulan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryGreen)),
           const SizedBox(height: 20),
           SizedBox(
+            width: double.infinity,
             height: 200,
             child: LineChart(
               LineChartData(
