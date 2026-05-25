@@ -208,6 +208,7 @@ class HistoryDetailSheet extends StatelessWidget {
           _title('Prediksi Pertumbuhan 6 Bulan'),
           const SizedBox(height: 20),
           SizedBox(
+            width: double.infinity,
             height: 260,
             child: LineChart(
               LineChartData(

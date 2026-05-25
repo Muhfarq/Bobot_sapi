@@ -212,11 +212,12 @@ class _HistoryTanggalScreenState extends State<HistoryTanggalScreen> {
           ),
           const SizedBox(height: 20),
           SizedBox(
+            width: double.infinity,
             height: 260,
             child: LineChart(
               LineChartData(
                 minX: 0,
-                maxX: (sorted.length - 1).toDouble().clamp(0, 1),
+                maxX: (sorted.length - 1).toDouble(),
                 minY: _minBobot - 20,
                 maxY: _maxBobot + 40,
                 gridData: const FlGridData(show: false),
