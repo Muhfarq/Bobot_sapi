@@ -9,8 +9,7 @@ import '../utils/calculator.dart';
 class HistoryDetailSheet extends StatelessWidget {
   final SapiModel sapi;
   final PengukuranModel pengukuran;
-
-  HistoryDetailSheet({
+  const HistoryDetailSheet({
     super.key,
     required this.sapi,
     required this.pengukuran,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 import '../database/db_helper.dart';
 import '../models/sapi_model.dart';
@@ -142,6 +143,31 @@ class _HistoryTanggalScreenState extends State<HistoryTanggalScreen> {
     showStyledSnackBar(context, 'Riwayat berhasil dihapus');
   }
 
+  List<PengukuranModel> get _sortedPengukuran {
+    final sorted = List<PengukuranModel>.from(_daftarPengukuran);
+    sorted.sort((a, b) => DateTime.parse(a.tanggal).compareTo(DateTime.parse(b.tanggal)));
+    return sorted;
+  }
+
+  double get _minBobot {
+    return _sortedPengukuran.map((e) => e.bobotSekarang).reduce((a, b) => a < b ? a : b);
+  }
+
+  double get _maxBobot {
+    return _sortedPengukuran.map((e) => e.bobotSekarang).reduce((a, b) => a > b ? a : b);
+  }
+
+  List<int> _labelIndices(int total) {
+    if (total <= 5) return List.generate(total, (i) => i);
+    final step = (total / 5).ceil();
+    final indices = <int>{0};
+    for (int i = 1; i < 5; i++) {
+      indices.add((step * i).clamp(0, total - 1));
+    }
+    final result = indices.toList()..sort();
+    return result;
+  }
+
   void _openDetailSheet(PengukuranModel item) {
     showModalBottomSheet(
       context: context,
@@ -150,6 +176,134 @@ class _HistoryTanggalScreenState extends State<HistoryTanggalScreen> {
       builder: (_) => HistoryDetailSheet(
         sapi: widget.sapi,
         pengukuran: item,
+      ),
+    );
+  }
+
+  Widget _grafikPertumbuhanCard() {
+    final sorted = _sortedPengukuran;
+    if (sorted.length < 2) return const SizedBox();
+    final labels = _labelIndices(sorted.length);
+    final spots = List.generate(
+      sorted.length,
+      (index) => FlSpot(index.toDouble(), sorted[index].bobotSekarang),
+    );
+    final range = _maxBobot - _minBobot;
+    final yInterval = range <= 100 ? 20.0 : (range <= 200 ? 50.0 : 100.0);
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Grafik Pertumbuhan Sapi',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: labelGreen,
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 260,
+            child: LineChart(
+              LineChartData(
+                minX: 0,
+                maxX: (sorted.length - 1).toDouble().clamp(0, 1),
+                minY: _minBobot - 20,
+                maxY: _maxBobot + 40,
+                gridData: const FlGridData(show: false),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: 1,
+                      getTitlesWidget: (value, meta) {
+                        final i = value.toInt();
+                        if (i < 0 || i >= sorted.length) return const SizedBox();
+                        if (!labels.contains(i)) return const SizedBox();
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            DateFormat('dd/MM').format(
+                              DateTime.parse(sorted[i].tanggal),
+                            ),
+                            style: const TextStyle(fontSize: 9),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: yInterval,
+                      reservedSize: 35,
+                      getTitlesWidget: (value, meta) {
+                        return Text(
+                          '${value.toInt()}',
+                          style: const TextStyle(fontSize: 11),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                lineBarsData: [
+                  LineChartBarData(
+                    isCurved: true,
+                    barWidth: 4,
+                    color: accentGreen,
+                    dotData: const FlDotData(show: true),
+                    spots: spots,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Column(
+            children: List.generate(sorted.length, (index) {
+              final item = sorted[index];
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Text(
+                      _formatTanggal(item.tanggal),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'BB: ${item.bobotSekarang.toStringAsFixed(1)} kg',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: primaryGreen,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ),
+        ],
       ),
     );
   }
@@ -241,6 +395,8 @@ class _HistoryTanggalScreenState extends State<HistoryTanggalScreen> {
                           );
                         }).toList(),
                       ),
+                      const SizedBox(height: 24),
+                      _grafikPertumbuhanCard(),
                     ],
                   ),
                 ),
