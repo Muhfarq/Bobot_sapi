@@ -1,11 +1,13 @@
-// lib/screens/history_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/sapi.dart';
-import '../utils/app_theme.dart';
-import '../utils/storage_service.dart';
-import 'history_sapi_screen.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+
+import '../database/db_helper.dart';
+import '../models/sapi_model.dart';
+import '../models/pengukuran_model.dart';
+import '../utils/calculator.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -15,19 +17,21 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  List<Sapi> _daftarSapi = [];
-  final Set<String> _selected = {};
-  bool _selectMode = false;
-  final _searchCtrl = TextEditingController();
-  String _query = '';
+  final TextEditingController _searchCtrl = TextEditingController();
+
+  List<SapiModel> _daftarSapi = [];
+  List<SapiModel> _filteredSapi = [];
+  List<PengukuranModel> _daftarPengukuran = [];
+
+  SapiModel? _selectedSapi;
+  PengukuranModel? _selectedPengukuran;
+
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _load();
-    _searchCtrl.addListener(() {
-      setState(() => _query = _searchCtrl.text.toLowerCase());
-    });
+    _loadSapi();
   }
 
   @override
@@ -36,281 +40,537 @@ class _HistoryScreenState extends State<HistoryScreen> {
     super.dispose();
   }
 
-  Future<void> _load() async {
-    final list = await StorageService.loadSapi();
-    setState(() => _daftarSapi = list);
+  Future<void> _loadSapi() async {
+    final data = await DBHelper.instance.getAllSapi();
+
+    setState(() {
+      _daftarSapi = data;
+      _filteredSapi = data;
+      _isLoading = false;
+    });
   }
 
-  List<Sapi> get _filtered => _daftarSapi
-      .where((s) => s.idNama.toLowerCase().contains(_query))
-      .toList();
+  Future<void> _loadPengukuran(int sapiId) async {
+    final data = await DBHelper.instance.getPengukuranBySapi(sapiId);
 
-  void _toggleSelect(String id) {
     setState(() {
-      if (_selected.contains(id)) {
-        _selected.remove(id);
-        if (_selected.isEmpty) _selectMode = false;
-      } else {
-        _selected.add(id);
+      _daftarPengukuran = data;
+      _selectedPengukuran = null;
+    });
+  }
+
+  void _filterSapi(String keyword) {
+    setState(() {
+      _filteredSapi = _daftarSapi.where((sapi) {
+        return sapi.namaSapi.toLowerCase().contains(keyword.toLowerCase());
+      }).toList();
+
+      if (_selectedSapi != null &&
+          !_filteredSapi.any((s) => s.id == _selectedSapi!.id)) {
+        _selectedSapi = null;
+        _selectedPengukuran = null;
+        _daftarPengukuran = [];
       }
     });
   }
 
-  void _enterSelectMode(String id) {
-    setState(() {
-      _selectMode = true;
-      _selected.add(id);
-    });
-  }
-
-  void _cancelSelect() {
-    setState(() {
-      _selectMode = false;
-      _selected.clear();
-    });
-  }
-
-  Future<void> _export() async {
-    final selectedSapi = _daftarSapi.where((s) => _selected.contains(s.id)).toList();
-
-    // Build CSV
-    final buffer = StringBuffer();
-    buffer.writeln('ID,Nama,Tanggal Masuk,Tanggal Pengukuran,Lingkar Dada (cm),Panjang Badan (cm),Estimasi Bobot (kg),Estimasi Pakan (kg),Target Bobot (kg),Estimasi Panen (bulan),Status');
-
-    for (final sapi in selectedSapi) {
-      for (final p in sapi.riwayat) {
-        buffer.writeln(
-          '${sapi.id},${sapi.nama},${DateFormat('dd/MM/yyyy').format(sapi.tanggalMasuk)},'
-          '${DateFormat('dd/MM/yyyy').format(p.tanggal)},${p.lingkarDada},${p.panjangBadan},'
-          '${p.estimasiBobot.toStringAsFixed(1)},${p.estimasiPakan.toStringAsFixed(1)},'
-          '${p.targetBobot},${p.bulanOptimis},${p.statusPanen}',
-        );
-      }
+  String _formatTanggal(String tanggal) {
+    try {
+      final date = DateTime.parse(tanggal);
+      return DateFormat('dd/MM/yyyy').format(date);
+    } catch (_) {
+      return tanggal;
     }
+  }
 
-    // Show preview dialog
-    if (!mounted) return;
-    showDialog(
+  List<PengukuranModel> _sortedPengukuranAwalKeTerbaru() {
+    final sorted = [..._daftarPengukuran];
+
+    sorted.sort((a, b) {
+      final dateA = DateTime.tryParse(a.tanggal) ?? DateTime(2000);
+      final dateB = DateTime.tryParse(b.tanggal) ?? DateTime(2000);
+      return dateA.compareTo(dateB);
+    });
+
+    return sorted;
+  }
+
+  Future<void> _deleteSapi() async {
+    if (_selectedSapi == null || _selectedSapi!.id == null) return;
+
+    final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Export Data'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${selectedSapi.length} sapi dipilih untuk diekspor.'),
-            const SizedBox(height: 8),
-            Text(
-              '${selectedSapi.fold(0, (sum, s) => sum + s.riwayat.length)} total pengukuran',
-              style: const TextStyle(color: AppColors.teksAbu),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Fitur export ke file CSV memerlukan plugin tambahan di perangkat nyata.',
-              style: TextStyle(fontSize: 12, color: AppColors.abu),
-            ),
-          ],
+      builder: (_) => AlertDialog(
+        title: const Text('Hapus Sapi?'),
+        content: Text(
+          'Semua riwayat ${_selectedSapi!.namaSapi} juga akan dihapus.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Tutup'),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.hijau,
-              minimumSize: Size.zero,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              _cancelSelect();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Data berhasil diekspor!'),
-                  backgroundColor: AppColors.hijau,
-                ),
-              );
-            },
-            child: const Text('Export CSV'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Hapus'),
           ),
         ],
       ),
     );
+
+    if (confirm != true) return;
+
+    await DBHelper.instance.deleteSapi(_selectedSapi!.id!);
+
+    setState(() {
+      _selectedSapi = null;
+      _selectedPengukuran = null;
+      _daftarPengukuran = [];
+      _searchCtrl.clear();
+    });
+
+    await _loadSapi();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Data sapi berhasil dihapus')),
+    );
   }
 
-  void _tapPilih() {
-    if (_selectMode) {
-      _cancelSelect();
-    } else {
-      setState(() => _selectMode = true);
+  Future<void> _deletePengukuran(PengukuranModel item) async {
+    if (item.id == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Hapus Riwayat?'),
+        content: Text(
+          'Hapus riwayat tanggal ${_formatTanggal(item.tanggal)}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    await DBHelper.instance.deletePengukuran(item.id!);
+
+    if (_selectedSapi?.id != null) {
+      await _loadPengukuran(_selectedSapi!.id!);
     }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Riwayat berhasil dihapus')),
+    );
+  }
+
+  Future<void> _exportPdf() async {
+    if (_selectedSapi == null || _daftarPengukuran.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih sapi dan data history dulu')),
+      );
+      return;
+    }
+
+    final sortedPengukuran = _sortedPengukuranAwalKeTerbaru();
+    final first = sortedPengukuran.first;
+    final last = sortedPengukuran.last;
+
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.MultiPage(
+        build: (context) => [
+          pw.Text(
+            'Laporan Riwayat Pengukuran Sapi',
+            style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 12),
+          pw.Text('Nama Sapi: ${_selectedSapi!.namaSapi}'),
+          pw.Text(
+            'Tanggal Export: ${DateFormat('dd/MM/yyyy').format(DateTime.now())}',
+          ),
+          pw.Text('Total Pengukuran: ${sortedPengukuran.length}'),
+          pw.SizedBox(height: 16),
+
+          pw.Text(
+            'Ringkasan Bobot',
+            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 8),
+          pw.Text('Bobot Awal: ${first.bobotSekarang.toStringAsFixed(1)} kg'),
+          pw.Text('Bobot Terbaru: ${last.bobotSekarang.toStringAsFixed(1)} kg'),
+          pw.Text('Target Bobot: ${last.targetBobot.toStringAsFixed(1)} kg'),
+
+          pw.SizedBox(height: 20),
+          pw.Text(
+            'Tabel Riwayat Pengukuran',
+            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 8),
+
+          pw.Table.fromTextArray(
+            headers: [
+              'No',
+              'Tanggal',
+              'LD',
+              'BB',
+              'Pakan',
+              'Target',
+              'Estimasi',
+              'Panen',
+            ],
+            data: List.generate(sortedPengukuran.length, (index) {
+              final p = sortedPengukuran[index];
+
+              return [
+                '${index + 1}',
+                _formatTanggal(p.tanggal),
+                '${p.lingkarDada.toStringAsFixed(1)} cm',
+                '${p.bobotSekarang.toStringAsFixed(1)} kg',
+                '${p.estimasiPakan.toStringAsFixed(1)} kg/hari',
+                '${p.targetBobot.toStringAsFixed(1)} kg',
+                '${p.estimasiBulan.toStringAsFixed(1)} bln',
+                _formatTanggal(p.tanggalPanen),
+              ];
+            }),
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
+            cellStyle: const pw.TextStyle(fontSize: 8),
+            cellAlignment: pw.Alignment.centerLeft,
+          ),
+        ],
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (format) async => pdf.save(),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _filtered;
+    final sortedForDisplay = _sortedPengukuranAwalKeTerbaru();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Logo')),
-      body: Column(
-        children: [
-          // Search bar
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: TextField(
-              controller: _searchCtrl,
-              decoration: InputDecoration(
-                hintText: 'Cari Sapi',
-                prefixIcon: const Icon(Icons.search, color: AppColors.abu),
-                filled: true,
-                fillColor: AppColors.abuMuda,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+      appBar: AppBar(
+        title: const Text('History Sapi'),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _daftarSapi.isEmpty
+              ? const Center(child: Text('Belum ada data sapi.'))
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      _searchCard(),
+                      const SizedBox(height: 12),
+                      _pilihSapiCard(),
+
+                      if (_selectedSapi != null) ...[
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 45,
+                          child: OutlinedButton.icon(
+                            onPressed: _deleteSapi,
+                            icon: const Icon(Icons.delete_outline),
+                            label: const Text('Hapus Sapi'),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _tanggalPengukuranCard(sortedForDisplay),
+                      ],
+
+                      if (_selectedSapi != null &&
+                          _daftarPengukuran.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            onPressed: _exportPdf,
+                            icon: const Icon(Icons.picture_as_pdf),
+                            label: const Text('Export PDF'),
+                          ),
+                        ),
+                      ],
+
+                      if (_selectedPengukuran != null) ...[
+                        const SizedBox(height: 16),
+                        _detailPengukuranCard(),
+                        const SizedBox(height: 16),
+                        _grafikPrediksiCard(),
+                      ],
+                    ],
+                  ),
+                ),
+    );
+  }
+
+  Widget _searchCard() {
+    return TextField(
+      controller: _searchCtrl,
+      onChanged: _filterSapi,
+      decoration: const InputDecoration(
+        labelText: 'Cari sapi',
+        prefixIcon: Icon(Icons.search),
+        border: OutlineInputBorder(),
+      ),
+    );
+  }
+
+  Widget _pilihSapiCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: DropdownButtonFormField<SapiModel>(
+          value: _selectedSapi,
+          decoration: const InputDecoration(
+            labelText: 'Pilih Sapi',
+            border: OutlineInputBorder(),
+          ),
+          items: _filteredSapi.map((sapi) {
+            return DropdownMenuItem<SapiModel>(
+              value: sapi,
+              child: Text(sapi.namaSapi),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedSapi = value;
+              _daftarPengukuran = [];
+              _selectedPengukuran = null;
+            });
+
+            if (value?.id != null) {
+              _loadPengukuran(value!.id!);
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _tanggalPengukuranCard(List<PengukuranModel> sortedData) {
+    if (sortedData.isEmpty) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Text('Belum ada riwayat pengukuran.'),
+        ),
+      );
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Tanggal Pengukuran',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+
+            Column(
+              children: sortedData.map((item) {
+                final isSelected = _selectedPengukuran?.id == item.id;
+
+                return ListTile(
+                  selected: isSelected,
+                  selectedTileColor: Colors.green.withOpacity(0.12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  leading: const Icon(Icons.calendar_month),
+                  title: Text(_formatTanggal(item.tanggal)),
+                  subtitle: Text(
+                    'BB: ${item.bobotSekarang.toStringAsFixed(1)} kg',
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    onPressed: () => _deletePengukuran(item),
+                  ),
+                  onTap: () {
+                    setState(() {
+                      _selectedPengukuran = item;
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _detailPengukuranCard() {
+    final p = _selectedPengukuran!;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Detail Pengukuran',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+
+            _infoRow('Nama Sapi', _selectedSapi?.namaSapi ?? '-'),
+            _infoRow('Tanggal', _formatTanggal(p.tanggal)),
+            _infoRow('Lingkar Dada', '${p.lingkarDada.toStringAsFixed(1)} cm'),
+            _infoRow('Estimasi BB', '${p.bobotSekarang.toStringAsFixed(1)} kg'),
+            _infoRow('Estimasi Pakan', '${p.estimasiPakan.toStringAsFixed(1)} kg/hari'),
+            _infoRow('Target Bobot', '${p.targetBobot.toStringAsFixed(1)} kg'),
+            _infoRow('Sisa Bobot', '${p.sisaBobot.toStringAsFixed(1)} kg'),
+            _infoRow('ADG', '${p.adg.toStringAsFixed(1)} kg/hari'),
+            _infoRow('Estimasi Waktu', '${p.estimasiBulan.toStringAsFixed(1)} bulan'),
+            _infoRow('Tanggal Panen', _formatTanggal(p.tanggalPanen)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _grafikPrediksiCard() {
+    final p = _selectedPengukuran!;
+    final data = prediksiBobot6Bulan(p.bobotSekarang);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Grafik Prediksi 6 Bulan',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+
+            SizedBox(
+              height: 260,
+              child: LineChart(
+                LineChartData(
+                  minX: 1,
+                  maxX: 6,
+                  minY: p.bobotSekarang - 20,
+                  maxY: data.last + 40,
+                  gridData: const FlGridData(
+                    show: true,
+                    drawVerticalLine: true,
+                  ),
+                  borderData: FlBorderData(show: true),
+                  titlesData: FlTitlesData(
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    bottomTitles: AxisTitles(
+                      axisNameWidget: const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Bulan',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 1,
+                        getTitlesWidget: (value, meta) {
+                          if (value < 1 || value > 6) return const SizedBox();
+                          return Text('+${value.toInt()}');
+                        },
+                      ),
+                    ),
+                    leftTitles: const AxisTitles(
+                      axisNameWidget: Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Text(
+                          'BB (kg)',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 50,
+                        reservedSize: 42,
+                      ),
+                    ),
+                  ),
+                  lineBarsData: [
+                    LineChartBarData(
+                      isCurved: true,
+                      barWidth: 4,
+                      dotData: const FlDotData(show: true),
+                      spots: List.generate(
+                        data.length,
+                        (index) => FlSpot(
+                          (index + 1).toDouble(),
+                          data[index],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ),
-          // Tombol pilih / batal
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: _selectMode
-                  ? OutlinedButton(
-                      onPressed: _cancelSelect,
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.hijau),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 8),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
+
+            const SizedBox(height: 12),
+
+            Column(
+              children: List.generate(data.length, (index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Text(
+                        '+${index + 1} Bulan',
+                        style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
-                      child: const Text('Batal',
-                          style: TextStyle(color: AppColors.hijau)),
-                    )
-                  : ElevatedButton(
-                      onPressed: _tapPilih,
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: Size.zero,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 8),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
+                      const Spacer(),
+                      Text(
+                        '${data[index].toStringAsFixed(1)} kg',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      child: const Text('Pilih'),
-                    ),
-            ),
-          ),
-          // List
-          Expanded(
-            child: filtered.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.history,
-                            size: 64, color: Colors.grey[300]),
-                        const SizedBox(height: 12),
-                        Text(
-                          _query.isEmpty
-                              ? 'Belum ada data sapi'
-                              : 'Tidak ditemukan',
-                          style: const TextStyle(color: AppColors.teksAbu),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: filtered.length,
-                    itemBuilder: (_, i) {
-                      final sapi = filtered[i];
-                      final isSelected = _selected.contains(sapi.id);
-                      return GestureDetector(
-                        onLongPress: () => _enterSelectMode(sapi.id),
-                        onTap: () {
-                          if (_selectMode) {
-                            _toggleSelect(sapi.id);
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    HistorySapiScreen(sapiId: sapi.id),
-                              ),
-                            ).then((_) => _load());
-                          }
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? AppColors.hijauMuda
-                                : AppColors.hijauCard,
-                            borderRadius: BorderRadius.circular(10),
-                            border: isSelected
-                                ? Border.all(color: AppColors.hijau, width: 1.5)
-                                : null,
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      sapi.idNama,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
-                                        color: AppColors.gelap,
-                                      ),
-                                    ),
-                                    Text(
-                                      DateFormat('dd/MM/yyyy')
-                                          .format(sapi.tanggalMasuk),
-                                      style: const TextStyle(
-                                        color: AppColors.hijauText,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (_selectMode)
-                                AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 200),
-                                  child: Icon(
-                                    isSelected
-                                        ? Icons.check_circle
-                                        : Icons.radio_button_unchecked,
-                                    key: ValueKey(isSelected),
-                                    color: isSelected
-                                        ? AppColors.hijau
-                                        : AppColors.abu,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
+                    ],
                   ),
-          ),
-          // Export button
-          if (_selectMode && _selected.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              child: ElevatedButton(
-                onPressed: _export,
-                child: Text('Export (${_selected.length} dipilih)'),
-              ),
+                );
+              }),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _infoRow(String title, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(child: Text(title)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
     );
