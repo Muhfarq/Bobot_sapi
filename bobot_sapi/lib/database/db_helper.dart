@@ -6,14 +6,12 @@ import '../models/pengukuran_model.dart';
 
 class DBHelper {
   static final DBHelper instance = DBHelper._init();
-
   static Database? _database;
 
   DBHelper._init();
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-
     _database = await _initDB('bobot_sapi.db');
     return _database!;
   }
@@ -24,11 +22,12 @@ class DBHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 3, // Version dinaikkan untuk mengakomodasi panjang_badan & goal_hari
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
       onCreate: _createDB,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -47,8 +46,10 @@ class DBHelper {
         sapi_id INTEGER NOT NULL,
         tanggal TEXT NOT NULL,
         lingkar_dada REAL NOT NULL,
+        panjang_badan REAL NOT NULL,
         bobot_sekarang REAL NOT NULL,
         estimasi_pakan REAL NOT NULL,
+        goal_hari INTEGER NOT NULL,
         target_bobot REAL NOT NULL,
         sisa_bobot REAL NOT NULL,
         adg REAL NOT NULL,
@@ -59,103 +60,76 @@ class DBHelper {
     ''');
   }
 
-  // ================= INSERT SAPI =================
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE pengukuran ADD COLUMN goal_hari INTEGER NOT NULL DEFAULT 0',
+      );
+    }
+    if (oldVersion < 3) {
+      await db.execute(
+        'ALTER TABLE pengukuran ADD COLUMN panjang_badan REAL NOT NULL DEFAULT 0.0',
+      );
+    }
+  }
+
   Future<int> insertSapi(SapiModel sapi) async {
     final db = await database;
     return await db.insert('sapi', sapi.toMap());
   }
 
-  // ================= INSERT PENGUKURAN =================
   Future<int> insertPengukuran(PengukuranModel pengukuran) async {
     final db = await database;
     return await db.insert('pengukuran', pengukuran.toMap());
   }
 
-  // ================= GET SEMUA SAPI =================
   Future<List<SapiModel>> getAllSapi() async {
     final db = await database;
-
-    final result = await db.query(
-      'sapi',
-      orderBy: 'id DESC',
-    );
-
+    final result = await db.query('sapi', orderBy: 'id DESC');
     return result.map((e) => SapiModel.fromMap(e)).toList();
   }
 
-  // ================= SEARCH SAPI =================
   Future<List<SapiModel>> searchSapi(String keyword) async {
     final db = await database;
-
     final result = await db.query(
       'sapi',
       where: 'nama_sapi LIKE ?',
       whereArgs: ['%$keyword%'],
       orderBy: 'id DESC',
     );
-
     return result.map((e) => SapiModel.fromMap(e)).toList();
   }
 
-  // ================= GET PENGUKURAN BY SAPI =================
   Future<List<PengukuranModel>> getPengukuranBySapi(int sapiId) async {
     final db = await database;
-
     final result = await db.query(
       'pengukuran',
       where: 'sapi_id = ?',
       whereArgs: [sapiId],
       orderBy: 'tanggal DESC',
     );
-
     return result.map((e) => PengukuranModel.fromMap(e)).toList();
   }
 
-  // ================= GET SEMUA PENGUKURAN =================
   Future<List<PengukuranModel>> getAllPengukuran() async {
     final db = await database;
-
-    final result = await db.query(
-      'pengukuran',
-      orderBy: 'id DESC',
-    );
-
+    final result = await db.query('pengukuran', orderBy: 'id DESC');
     return result.map((e) => PengukuranModel.fromMap(e)).toList();
   }
 
-  // ================= DELETE SAPI =================
   Future<int> deleteSapi(int id) async {
     final db = await database;
-
     return await db.transaction((txn) async {
-      // hapus semua riwayat/pengukuran sapi dulu
-      await txn.delete(
-        'pengukuran',
-        where: 'sapi_id = ?',
-        whereArgs: [id],
-      );
-
-      // baru hapus data sapinya
-      return await txn.delete(
-        'sapi',
-        where: 'id = ?',
-        whereArgs: [id],
-      );
+      await txn.delete('pengukuran', where: 'sapi_id = ?', whereArgs: [id]);
+      return await txn.delete('sapi', where: 'id = ?', whereArgs: [id]);
     });
   }
 
-  // ================= DELETE PENGUKURAN =================
   Future<int> deletePengukuran(int id) async {
     final db = await database;
-
-    return await db.delete(
-      'pengukuran',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('pengukuran', where: 'id = ?', whereArgs: [id]);
   }
 
-  // ================= CLOSE DB =================
   Future<void> close() async {
     final db = await database;
     await db.close();

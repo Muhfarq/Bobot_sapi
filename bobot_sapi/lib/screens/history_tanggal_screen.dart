@@ -150,10 +150,12 @@ class _HistoryTanggalScreenState extends State<HistoryTanggalScreen> {
   }
 
   double get _minBobot {
+    if (_sortedPengukuran.isEmpty) return 0;
     return _sortedPengukuran.map((e) => e.bobotSekarang).reduce((a, b) => a < b ? a : b);
   }
 
   double get _maxBobot {
+    if (_sortedPengukuran.isEmpty) return 100;
     return _sortedPengukuran.map((e) => e.bobotSekarang).reduce((a, b) => a > b ? a : b);
   }
 
@@ -190,6 +192,7 @@ class _HistoryTanggalScreenState extends State<HistoryTanggalScreen> {
     );
     final range = _maxBobot - _minBobot;
     final yInterval = range <= 100 ? 20.0 : (range <= 200 ? 50.0 : 100.0);
+    final double computedMinY = _minBobot - 20;
 
     return Container(
       width: double.infinity,
@@ -218,7 +221,7 @@ class _HistoryTanggalScreenState extends State<HistoryTanggalScreen> {
               LineChartData(
                 minX: 0,
                 maxX: (sorted.length - 1).toDouble(),
-                minY: _minBobot - 20,
+                minY: computedMinY < 0 ? 0 : computedMinY,
                 maxY: _maxBobot + 40,
                 gridData: const FlGridData(show: false),
                 borderData: FlBorderData(show: false),
@@ -332,7 +335,7 @@ class _HistoryTanggalScreenState extends State<HistoryTanggalScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: primaryGreen))
           : _daftarPengukuran.isEmpty
               ? const Center(child: Text('Belum ada riwayat pengukuran.'))
               : SingleChildScrollView(

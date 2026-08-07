@@ -167,15 +167,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
             ),
             pw.SizedBox(height: 12),
-
             pw.Text('Nama Sapi: ${sapi.namaSapi}'),
             pw.Text(
               'Tanggal Export: ${DateFormat('dd/MM/yyyy').format(DateTime.now())}',
             ),
             pw.Text('Total Pengukuran: ${sorted.length}'),
-
             pw.SizedBox(height: 16),
-
             pw.Text(
               'Ringkasan Bobot',
               style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
@@ -190,9 +187,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             pw.Text(
               'Target Bobot: ${last.targetBobot.toStringAsFixed(1)} kg',
             ),
-
             pw.SizedBox(height: 20),
-
             pw.Table.fromTextArray(
               headers: [
                 'No',
@@ -201,7 +196,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 'BB',
                 'Pakan',
                 'Target',
-                'Estimasi',
+                'Goal',
                 'Panen',
               ],
               data: List.generate(sorted.length, (index) {
@@ -214,7 +209,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   '${p.bobotSekarang.toStringAsFixed(1)} kg',
                   '${p.estimasiPakan.toStringAsFixed(1)} kg/hari',
                   '${p.targetBobot.toStringAsFixed(1)} kg',
-                  '${p.estimasiBulan.toStringAsFixed(1)} bln',
+                  '${p.goalHari} Hari',
                   _formatTanggal(p.tanggalPanen),
                 ];
               }),
@@ -305,14 +300,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
           ),
           elevation: 0,
-          iconTheme: const IconThemeData(color: Colors.white),
+          automaticallyImplyLeading: false,
         ),
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? Center(child: CircularProgressIndicator(color: primaryGreen))
             : _daftarSapi.isEmpty
                 ? const Center(child: Text('Belum ada data sapi.'))
                 : SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      16,
+                      16,
+                      _isSelectionMode ? 160 : 100,
+                    ),
                     child: Column(
                       children: [
                         _searchCard(),
@@ -323,8 +323,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ],
                     ),
                   ),
-        bottomNavigationBar:
-            _isSelectionMode ? _bottomSelectionActions() : null,
+        bottomSheet: _isSelectionMode ? _bottomSelectionActions() : null,
       ),
     );
   }
@@ -437,7 +436,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _bottomSelectionActions() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
       decoration: const BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -448,41 +447,39 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ],
       ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed: _selectedSapiIds.isEmpty ? null : _deleteSapi,
-                icon: const Icon(Icons.delete, color: Colors.white),
-                label: const Text(
-                  'Hapus',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
+      child: Row(
+        children: [
+          Expanded(
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: _selectedSapiIds.isEmpty ? null : _deleteSapi,
+              icon: const Icon(Icons.delete, color: Colors.white),
+              label: const Text(
+                'Hapus',
+                style: TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 2,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00A65F),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed: _selectedSapiIds.isEmpty ? null : _exportPdfAction,
-                icon: const Icon(Icons.file_download, color: Colors.white),
-                label: const Text(
-                  'Export PDF',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00A65F),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: _selectedSapiIds.isEmpty ? null : _exportPdfAction,
+              icon: const Icon(Icons.file_download, color: Colors.white),
+              label: const Text(
+                'Export PDF',
+                style: TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

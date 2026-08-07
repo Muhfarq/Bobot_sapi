@@ -3,8 +3,10 @@ class PengukuranModel {
   final int sapiId;
   final String tanggal;
   final double lingkarDada;
+  final double panjangBadan;
   final double bobotSekarang;
   final double estimasiPakan;
+  final int goalHari;
   final double targetBobot;
   final double sisaBobot;
   final double adg;
@@ -16,8 +18,10 @@ class PengukuranModel {
     required this.sapiId,
     required this.tanggal,
     required this.lingkarDada,
+    required this.panjangBadan,
     required this.bobotSekarang,
     required this.estimasiPakan,
+    required this.goalHari,
     required this.targetBobot,
     required this.sisaBobot,
     required this.adg,
@@ -31,8 +35,10 @@ class PengukuranModel {
       'sapi_id': sapiId,
       'tanggal': tanggal,
       'lingkar_dada': lingkarDada,
+      'panjang_badan': panjangBadan,
       'bobot_sekarang': bobotSekarang,
       'estimasi_pakan': estimasiPakan,
+      'goal_hari': goalHari,
       'target_bobot': targetBobot,
       'sisa_bobot': sisaBobot,
       'adg': adg,
@@ -46,13 +52,15 @@ class PengukuranModel {
       id: map['id'],
       sapiId: map['sapi_id'],
       tanggal: map['tanggal'],
-      lingkarDada: map['lingkar_dada'],
-      bobotSekarang: map['bobot_sekarang'],
-      estimasiPakan: map['estimasi_pakan'],
-      targetBobot: map['target_bobot'],
-      sisaBobot: map['sisa_bobot'],
-      adg: map['adg'],
-      estimasiBulan: map['estimasi_bulan'],
+      lingkarDada: (map['lingkar_dada'] as num).toDouble(),
+      panjangBadan: (map['panjang_badan'] as num? ?? 0.0).toDouble(),
+      bobotSekarang: (map['bobot_sekarang'] as num).toDouble(),
+      estimasiPakan: (map['estimasi_pakan'] as num).toDouble(),
+      goalHari: map['goal_hari'] ?? 0,
+      targetBobot: (map['target_bobot'] as num).toDouble(),
+      sisaBobot: (map['sisa_bobot'] as num).toDouble(),
+      adg: (map['adg'] as num).toDouble(),
+      estimasiBulan: (map['estimasi_bulan'] as num).toDouble(),
       tanggalPanen: map['tanggal_panen'],
     );
   }

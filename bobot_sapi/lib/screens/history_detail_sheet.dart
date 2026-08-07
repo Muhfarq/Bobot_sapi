@@ -9,6 +9,7 @@ import '../utils/calculator.dart';
 class HistoryDetailSheet extends StatelessWidget {
   final SapiModel sapi;
   final PengukuranModel pengukuran;
+
   const HistoryDetailSheet({
     super.key,
     required this.sapi,
@@ -95,6 +96,10 @@ class HistoryDetailSheet extends StatelessWidget {
             '${pengukuran.lingkarDada.toStringAsFixed(1)} cm',
           ),
           _infoRow(
+            'Panjang Sapi',
+            '${pengukuran.panjangBadan.toStringAsFixed(1)} cm',
+          ),
+          _infoRow(
             'ADG',
             '${pengukuran.adg.toStringAsFixed(1)} kg/hari',
           ),
@@ -155,7 +160,7 @@ class HistoryDetailSheet extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                pengukuran.estimasiBulan.toStringAsFixed(0),
+                pengukuran.targetBobot.toStringAsFixed(0),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 48,
@@ -164,11 +169,11 @@ class HistoryDetailSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 6),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
-                  'Bulan\nRealistis',
-                  style: TextStyle(
+                  'Kg\ndalam ${pengukuran.goalHari} Hari',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     height: 1.2,
@@ -181,14 +186,8 @@ class HistoryDetailSheet extends StatelessWidget {
           Divider(color: Colors.white.withOpacity(0.2)),
           const SizedBox(height: 8),
           _whiteRow(
-            'Target Bobot',
-            '${pengukuran.targetBobot.toStringAsFixed(1)} kg',
-          ),
-          const SizedBox(height: 4),
-          _whiteRow(
-            'Sisa Bobot',
-            '${pengukuran.sisaBobot.toStringAsFixed(1)} kg',
-            small: true,
+            'Bobot Awal',
+            '${pengukuran.bobotSekarang.toStringAsFixed(1)} kg',
           ),
           const SizedBox(height: 4),
           _whiteRow(
@@ -201,6 +200,8 @@ class HistoryDetailSheet extends StatelessWidget {
   }
 
   Widget _grafikPrediksiCard(List<double> data) {
+    final double minY = pengukuran.bobotSekarang - 20;
+
     return _whiteCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,8 +215,8 @@ class HistoryDetailSheet extends StatelessWidget {
               LineChartData(
                 minX: 1,
                 maxX: 6,
-                minY: pengukuran.bobotSekarang - 20,
-                maxY: data.last + 40,
+                minY: minY < 0 ? 0 : minY,
+                maxY: (data.isNotEmpty ? data.last : 100) + 40,
                 gridData: const FlGridData(show: false),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
@@ -370,23 +371,23 @@ class HistoryDetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _whiteRow(String title, String value, {bool small = false}) {
+  Widget _whiteRow(String title, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           title,
-          style: TextStyle(
-            color: small ? Colors.white54 : Colors.white70,
-            fontSize: small ? 12 : 14,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 14,
           ),
         ),
         Text(
           value,
-          style: TextStyle(
-            color: small ? Colors.white70 : Colors.white,
+          style: const TextStyle(
+            color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: small ? 12 : 14,
+            fontSize: 14,
           ),
         ),
       ],
