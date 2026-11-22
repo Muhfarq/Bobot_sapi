@@ -1,4 +1,4 @@
-# Bobot Sapi
+# Taksir
 
 Aplikasi Flutter **offline** untuk membantu peternak mencatat pengukuran sapi, memperkirakan bobot dan tanggal panen, serta menghitung kebutuhan pakan harian.
 
@@ -21,7 +21,7 @@ Seluruh data disimpan lokal di perangkat menggunakan SQLite. Tidak ada login, AP
 
 ## Tentang Aplikasi
 
-`Bobot Sapi` dibuat untuk menyederhanakan dua kebutuhan utama di lapangan:
+`Taksir` dibuat untuk menyederhanakan dua kebutuhan utama di lapangan:
 
 1. **Mencatat perkembangan sapi** — mulai dari pengukuran lingkar dada, panjang badan, tinggi gumba, dan kondisi poel, lalu melihat estimasi bobot serta target panen.
 2. **Merencanakan pakan** — menghitung kebutuhan bahan kering (BK) per hari berdasarkan bobot terbaru sapi, lalu membandingkannya dengan jumlah hijauan dan konsentrat yang tersedia.
