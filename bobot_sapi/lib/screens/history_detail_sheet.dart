@@ -113,7 +113,7 @@ class HistoryDetailSheet extends StatelessWidget {
       decoration: BoxDecoration(
         color: lightGreenBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accentGreen.withOpacity(0.5)),
+        border: Border.all(color: accentGreen.withValues(alpha: 0.5)),
       ),
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       child: Row(
@@ -127,7 +127,7 @@ class HistoryDetailSheet extends StatelessWidget {
           Container(
             width: 1,
             height: 40,
-            color: accentGreen.withOpacity(0.3),
+            color: accentGreen.withValues(alpha: 0.3),
           ),
           Expanded(
             child: _centerInfo(
@@ -183,7 +183,7 @@ class HistoryDetailSheet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Divider(color: Colors.white.withOpacity(0.2)),
+          Divider(color: Colors.white.withValues(alpha: 0.2)),
           const SizedBox(height: 8),
           _whiteRow(
             'Bobot Awal',

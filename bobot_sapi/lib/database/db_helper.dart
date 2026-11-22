@@ -22,7 +22,7 @@ class DBHelper {
 
     return await openDatabase(
       path,
-      version: 3, // Version dinaikkan untuk mengakomodasi panjang_badan & goal_hari
+      version: 4, // Versi 4: menambahkan tinggi_gumba & poel
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -47,6 +47,8 @@ class DBHelper {
         tanggal TEXT NOT NULL,
         lingkar_dada REAL NOT NULL,
         panjang_badan REAL NOT NULL,
+        tinggi_gumba REAL NOT NULL DEFAULT 0.0,
+        poel TEXT NOT NULL DEFAULT '',
         bobot_sekarang REAL NOT NULL,
         estimasi_pakan REAL NOT NULL,
         goal_hari INTEGER NOT NULL,
@@ -69,6 +71,14 @@ class DBHelper {
     if (oldVersion < 3) {
       await db.execute(
         'ALTER TABLE pengukuran ADD COLUMN panjang_badan REAL NOT NULL DEFAULT 0.0',
+      );
+    }
+    if (oldVersion < 4) {
+      await db.execute(
+        'ALTER TABLE pengukuran ADD COLUMN tinggi_gumba REAL NOT NULL DEFAULT 0.0',
+      );
+      await db.execute(
+        "ALTER TABLE pengukuran ADD COLUMN poel TEXT NOT NULL DEFAULT ''",
       );
     }
   }
@@ -109,6 +119,19 @@ class DBHelper {
       orderBy: 'tanggal DESC',
     );
     return result.map((e) => PengukuranModel.fromMap(e)).toList();
+  }
+
+  Future<PengukuranModel?> getPengukuranTerakhir(int sapiId) async {
+    final db = await database;
+    final result = await db.query(
+      'pengukuran',
+      where: 'sapi_id = ?',
+      whereArgs: [sapiId],
+      orderBy: 'tanggal DESC, id DESC',
+      limit: 1,
+    );
+    if (result.isEmpty) return null;
+    return PengukuranModel.fromMap(result.first);
   }
 
   Future<List<PengukuranModel>> getAllPengukuran() async {

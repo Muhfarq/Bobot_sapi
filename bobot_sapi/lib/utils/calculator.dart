@@ -10,6 +10,14 @@ double hitungEstimasiPakan(double bobotSapi) {
   return bobotSapi * 0.03;
 }
 
+// Kadar bahan kering (BK) konsentrat: asumsi, ubah jika punya data pasti.
+const double bkKonsentrat = 0.88;
+
+double hitungBKHijauan(double beratSegar, double bkPersen) =>
+    beratSegar * bkPersen / 100;
+
+double hitungBKKonsentrat(double berat) => berat * bkKonsentrat;
+
 // Rumus Panen Berdasar Hari: Bobot Awal + (ADG * Hari)
 double hitungBobotPanenHari(double bobotAwal, int hari) {
   return bobotAwal + (adgRealistis * hari);

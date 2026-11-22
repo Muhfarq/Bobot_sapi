@@ -13,6 +13,16 @@ class AppColors {
   static const putih = Color(0xFFFFFFFF);
   static const gelap = Color(0xFF1A1A1A);
   static const teksAbu = Color(0xFF757575);
+
+  // Success banner
+  static const successBg = Color(0xFFC8F7DF);
+  static const successIcon = Color(0xFF00A76E);
+  static const successText = Color(0xFF0B6B45);
+  // Danger banner
+  static const dangerBg = Color(0xFFFFE0E0);
+  static const dangerIcon = Color(0xFFD92D20);
+  static const dangerTitle = Color(0xFFB42318);
+  static const dangerText = Color(0xFF912018);
 }
 
 class AppTheme {

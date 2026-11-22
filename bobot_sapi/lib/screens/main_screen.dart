@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'input_sapi_screen.dart';
+import 'hitung_pakan_screen.dart';
 import 'update_sapi_screen.dart';
 import 'history_screen.dart';
 
@@ -15,9 +16,11 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   final _historyRefresh = ValueNotifier<int>(0);
   final _updateRefresh = ValueNotifier<int>(0);
+  final _hitungRefresh = ValueNotifier<int>(0);
 
   late final List<Widget> _screens = [
     const InputSapiScreen(),
+    HitungPakanScreen(refreshNotifier: _hitungRefresh),
     UpdateSapiScreen(refreshNotifier: _updateRefresh),
     HistoryScreen(refreshNotifier: _historyRefresh),
   ];
@@ -27,9 +30,12 @@ class _MainScreenState extends State<MainScreen> {
       _selectedIndex = index;
     });
     if (index == 1) {
-      _updateRefresh.value++;
+      _hitungRefresh.value++;
     }
     if (index == 2) {
+      _updateRefresh.value++;
+    }
+    if (index == 3) {
       _historyRefresh.value++;
     }
   }
@@ -60,7 +66,7 @@ class _MainScreenState extends State<MainScreen> {
         borderRadius: BorderRadius.circular(40),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -68,12 +74,17 @@ class _MainScreenState extends State<MainScreen> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final itemWidth = constraints.maxWidth / 3;
+          final itemWidth = constraints.maxWidth / 4;
           final capsuleW = itemWidth - 12;
           const capsuleH = 48.0;
 
-          final icons = [Icons.add, Icons.refresh, Icons.history];
-          final labels = ['Input', 'Update', 'History'];
+          final icons = [
+            Icons.add,
+            Icons.calculate_outlined,
+            Icons.refresh,
+            Icons.history,
+          ];
+          final labels = ['Input', 'Hitung', 'Update', 'History'];
 
           return SizedBox(
             height: 62,
@@ -81,7 +92,7 @@ class _MainScreenState extends State<MainScreen> {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: List.generate(3, (index) {
+                  children: List.generate(4, (index) {
                     return GestureDetector(
                       onTap: () => _onTap(index),
                       behavior: HitTestBehavior.opaque,

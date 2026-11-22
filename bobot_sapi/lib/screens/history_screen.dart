@@ -188,7 +188,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               'Target Bobot: ${last.targetBobot.toStringAsFixed(1)} kg',
             ),
             pw.SizedBox(height: 20),
-            pw.Table.fromTextArray(
+            pw.TableHelper.fromTextArray(
               headers: [
                 'No',
                 'Tanggal',

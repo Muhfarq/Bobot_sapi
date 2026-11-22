@@ -7,6 +7,9 @@ import '../models/sapi_model.dart';
 import '../models/pengukuran_model.dart';
 import '../utils/calculator.dart';
 import '../utils/app_theme.dart';
+import '../utils/daftar_poel.dart';
+import '../widgets/app_dropdown.dart';
+import '../widgets/app_text_field.dart';
 
 class InputSapiScreen extends StatefulWidget {
   const InputSapiScreen({super.key});
@@ -19,7 +22,9 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
   final _namaController = TextEditingController();
   final _lingkarDadaController = TextEditingController();
   final _panjangBadanController = TextEditingController();
+  final _tinggiGumbaController = TextEditingController();
   final _goalHariController = TextEditingController();
+  String? _poel;
 
   DateTime _tanggal = DateTime.now();
 
@@ -41,6 +46,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
     _namaController.dispose();
     _lingkarDadaController.dispose();
     _panjangBadanController.dispose();
+    _tinggiGumbaController.dispose();
     _goalHariController.dispose();
     super.dispose();
   }
@@ -104,6 +110,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
     final nama = _namaController.text.trim();
     final ld = double.tryParse(_lingkarDadaController.text) ?? 0;
     final pb = double.tryParse(_panjangBadanController.text) ?? 0;
+    final tb = double.tryParse(_tinggiGumbaController.text) ?? 0;
 
     final sapi = SapiModel(
       namaSapi: nama,
@@ -117,6 +124,8 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
       tanggal: DateFormat('yyyy-MM-dd').format(_tanggal),
       lingkarDada: ld,
       panjangBadan: pb,
+      tinggiGumba: tb,
+      poel: _poel ?? '',
       bobotSekarang: _bobotSekarang!,
       estimasiPakan: _estimasiPakan!,
       goalHari: _goalHari!,
@@ -137,6 +146,8 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
       _namaController.clear();
       _lingkarDadaController.clear();
       _panjangBadanController.clear();
+      _tinggiGumbaController.clear();
+      _poel = null;
       _goalHariController.clear();
 
       _bobotSekarang = null;
@@ -218,7 +229,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -301,6 +312,52 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
           ),
           const SizedBox(height: 18),
 
+          // Form Tinggi Gumba dan Poel berdampingan (opsional)
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildLabel('Tinggi Gumba (cm)'),
+                    const SizedBox(height: 8),
+                    AppTextField(
+                      controller: _tinggiGumbaController,
+                      hintText: '0',
+                      keyboardType: TextInputType.number,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildLabel('Poel'),
+                    const SizedBox(height: 8),
+                    AppDropdown<String>(
+                      value: _poel,
+                      hintText: 'Pilih Poel',
+                      items: daftarPoel
+                          .map(
+                            (poel) => DropdownMenuItem<String>(
+                              value: poel,
+                              child: Text(poel, overflow: TextOverflow.ellipsis),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() => _poel = value);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+
           _buildLabel('Goal Panen (Hari)'),
           const SizedBox(height: 8),
           _buildTextField(
@@ -325,21 +382,10 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
     required String hintText,
     TextInputType keyboardType = TextInputType.text,
   }) {
-    return TextField(
+    return AppTextField(
       controller: controller,
+      hintText: hintText,
       keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: const TextStyle(color: Colors.black38),
-        filled: true,
-        fillColor: fieldColor,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-      ),
     );
   }
 
@@ -354,41 +400,36 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Estimasi Panen', style: TextStyle(color: Colors.white70, fontSize: 18)),
+          const Text('Bobot Awal', style: TextStyle(color: Colors.white70, fontSize: 18)),
           const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${_bobotPanen!.toStringAsFixed(0)}',
+                _bobotSekarang!.toStringAsFixed(1),
                 style: const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.bold, height: 1.0),
               ),
               const SizedBox(width: 8),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 6),
                 child: Text(
-                  'Kg\ndalam $_goalHari Hari',
-                  style: const TextStyle(color: Colors.white, fontSize: 16, height: 1.2),
+                  'Kg',
+                  style: TextStyle(color: Colors.white, fontSize: 16, height: 1.2),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          Divider(color: Colors.white.withOpacity(0.2)),
+          Divider(color: Colors.white.withValues(alpha: 0.2)),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Bobot Awal', style: TextStyle(color: Colors.white70)),
-              Text('${_bobotSekarang!.toStringAsFixed(1)} kg', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Estimasi Pakan/Hari', style: TextStyle(color: Colors.white70)),
-              Text('${_estimasiPakan!.toStringAsFixed(1)} kg', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              const Text('Estimasi Panen', style: TextStyle(color: Colors.white70)),
+              Text(
+                '${_bobotPanen!.toStringAsFixed(0)} kg dalam $_goalHari hari',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
             ],
           ),
           const SizedBox(height: 4),

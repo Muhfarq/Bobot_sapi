@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+
+import 'database/database_factory.dart';
 import 'screens/main_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initDatabaseFactory();
   runApp(const MyApp());
 }
 

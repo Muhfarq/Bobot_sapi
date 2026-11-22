@@ -383,7 +383,7 @@ class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFF7FAF8),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: primaryGreen.withOpacity(0.2)),
+        border: Border.all(color: primaryGreen.withValues(alpha: 0.2)),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -409,7 +409,7 @@ class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: primaryGreen.withOpacity(0.1),
+                  color: primaryGreen.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -531,7 +531,7 @@ class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFEAF8F5),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accentGreen.withOpacity(0.5)),
+        border: Border.all(color: accentGreen.withValues(alpha: 0.5)),
       ),
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       child: Row(
@@ -542,7 +542,7 @@ class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
               value: '${_bobotSekarang!.toStringAsFixed(0)} kg',
             ),
           ),
-          Container(width: 1, height: 40, color: accentGreen.withOpacity(0.3)),
+          Container(width: 1, height: 40, color: accentGreen.withValues(alpha: 0.3)),
           Expanded(
             child: _infoItem(
               title: 'Estimasi Pakan',
@@ -613,7 +613,7 @@ class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${_targetBobot!.toStringAsFixed(0)}',
+                _targetBobot!.toStringAsFixed(0),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 48,
@@ -632,7 +632,7 @@ class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          Divider(color: Colors.white.withOpacity(0.2)),
+          Divider(color: Colors.white.withValues(alpha: 0.2)),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -4,11 +4,13 @@ class PengukuranModel {
   final String tanggal;
   final double lingkarDada;
   final double panjangBadan;
+  final double tinggiGumba;
+  final String poel;
   final double bobotSekarang;
   final double estimasiPakan;
   final int goalHari;
   final double targetBobot;
-  final double sisaBobot;
+  final double sisaBobot; 
   final double adg;
   final double estimasiBulan;
   final String tanggalPanen;
@@ -19,6 +21,8 @@ class PengukuranModel {
     required this.tanggal,
     required this.lingkarDada,
     required this.panjangBadan,
+    this.tinggiGumba = 0.0,
+    this.poel = '',
     required this.bobotSekarang,
     required this.estimasiPakan,
     required this.goalHari,
@@ -36,6 +40,8 @@ class PengukuranModel {
       'tanggal': tanggal,
       'lingkar_dada': lingkarDada,
       'panjang_badan': panjangBadan,
+      'tinggi_gumba': tinggiGumba,
+      'poel': poel,
       'bobot_sekarang': bobotSekarang,
       'estimasi_pakan': estimasiPakan,
       'goal_hari': goalHari,
@@ -54,6 +60,8 @@ class PengukuranModel {
       tanggal: map['tanggal'],
       lingkarDada: (map['lingkar_dada'] as num).toDouble(),
       panjangBadan: (map['panjang_badan'] as num? ?? 0.0).toDouble(),
+      tinggiGumba: (map['tinggi_gumba'] as num? ?? 0.0).toDouble(),
+      poel: map['poel'] as String? ?? '',
       bobotSekarang: (map['bobot_sekarang'] as num).toDouble(),
       estimasiPakan: (map['estimasi_pakan'] as num).toDouble(),
       goalHari: map['goal_hari'] ?? 0,

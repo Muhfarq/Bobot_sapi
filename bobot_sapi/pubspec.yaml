@@ -37,6 +37,7 @@ dependencies:
   fl_chart: ^0.70.2
   pdf: ^3.11.1
   printing: ^5.13.4
+  sqflite_common_ffi: ^2.4.0+3
 
 dev_dependencies:
   flutter_test:
