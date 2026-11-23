@@ -19,6 +19,7 @@ class FormUpdateSapiScreen extends StatefulWidget {
 class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
   final _lingkarDadaController = TextEditingController();
   final _panjangBadanController = TextEditingController();
+  final _tinggiGumbaController = TextEditingController();
   final _goalHariController = TextEditingController();
 
   DateTime _tanggal = DateTime.now();
@@ -53,6 +54,7 @@ class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
   void dispose() {
     _lingkarDadaController.dispose();
     _panjangBadanController.dispose();
+    _tinggiGumbaController.dispose();
     _goalHariController.dispose();
     super.dispose();
   }
@@ -130,13 +132,15 @@ class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
 
   void _hitungBobot() {
     final ld = double.tryParse(_lingkarDadaController.text) ?? 0;
+    final pb = double.tryParse(_panjangBadanController.text) ?? 0;
+    final tb = double.tryParse(_tinggiGumbaController.text) ?? 0;
 
-    if (ld <= 0) {
-      showStyledSnackBar(context, 'Lingkar dada wajib diisi');
+    if (ld <= 0 || pb <= 0 || tb <= 0) {
+      showStyledSnackBar(context, 'Lingkar dada, panjang badan, dan tinggi gumba wajib diisi');
       return;
     }
 
-    final bobot = hitungBobotSapi(ld);
+    final bobot = hitungBobotSapi(ld, pb, tb);
     final pakan = hitungEstimasiPakan(bobot);
 
     setState(() {
@@ -178,12 +182,14 @@ class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
 
     final ld = double.tryParse(_lingkarDadaController.text) ?? 0;
     final pb = double.tryParse(_panjangBadanController.text) ?? 0;
+    final tb = double.tryParse(_tinggiGumbaController.text) ?? 0;
 
     final pengukuran = PengukuranModel(
       sapiId: widget.sapi.id!,
       tanggal: DateFormat('yyyy-MM-dd').format(_tanggal),
       lingkarDada: ld,
       panjangBadan: pb,
+      tinggiGumba: tb,
       bobotSekarang: _bobotSekarang!,
       estimasiPakan: _estimasiPakan!,
       goalHari: _goalHari ?? 0,
@@ -248,7 +254,7 @@ class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Input Lingkar Dada & Panjang Sapi
+            // Input Lingkar Dada, Panjang Sapi, & Tinggi Gumba
             Row(
               children: [
                 Expanded(
@@ -274,6 +280,21 @@ class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
                       const SizedBox(height: 8),
                       _buildTextField(
                         controller: _panjangBadanController,
+                        hintText: '0',
+                        keyboardType: TextInputType.number,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildLabel('Tinggi Gumba (cm)'),
+                      const SizedBox(height: 8),
+                      _buildTextField(
+                        controller: _tinggiGumbaController,
                         hintText: '0',
                         keyboardType: TextInputType.number,
                       ),

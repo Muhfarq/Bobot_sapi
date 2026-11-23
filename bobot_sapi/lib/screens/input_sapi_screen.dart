@@ -69,6 +69,8 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
   void _hitung() {
     final nama = _namaController.text.trim();
     final ld = double.tryParse(_lingkarDadaController.text) ?? 0;
+    final pb = double.tryParse(_panjangBadanController.text) ?? 0;
+    final tb = double.tryParse(_tinggiGumbaController.text) ?? 0;
     final hari = int.tryParse(_goalHariController.text) ?? 0;
 
     if (nama.isEmpty) {
@@ -76,8 +78,8 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
       return;
     }
 
-    if (ld <= 0) {
-      showStyledSnackBar(context, 'Lingkar dada wajib diisi');
+    if (ld <= 0 || pb <= 0 || tb <= 0) {
+      showStyledSnackBar(context, 'Lingkar dada, panjang badan, dan tinggi gumba wajib diisi dengan benar');
       return;
     }
 
@@ -86,7 +88,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
       return;
     }
 
-    final bobotAwal = hitungBobotSapi(ld);
+    final bobotAwal = hitungBobotSapi(ld, pb, tb);
     final pakan = hitungEstimasiPakan(bobotAwal);
     final bobotAkhir = hitungBobotPanenHari(bobotAwal, hari);
     final tglPanen = hitungTanggalPanenHari(hari, tanggalUkur: _tanggal);

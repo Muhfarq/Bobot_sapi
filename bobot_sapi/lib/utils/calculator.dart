@@ -1,9 +1,20 @@
 const double adgRealistis = 1.0;
 const double targetDefaultSimmental = 750.0;
 
-// Rumus Schoorl (Menggunakan Lingkar Dada)
-double hitungBobotSapi(double lingkarDada) {
-  return ((lingkarDada + 22) * (lingkarDada + 22)) / 100;
+// Rumus Baru (Menggunakan Lingkar Dada, Panjang Badan, dan Tinggi Gumba)
+// double hitungBobotSapi(double lingkarDada, double panjangBadan, double tinggiGumba) {
+//   return -736.634 +
+//       (4.083793 * lingkarDada) +
+//       (2.836318 * panjangBadan) +
+//       (0.283673 * tinggiGumba);
+// }
+
+double hitungBobotSapi(double lingkarDada, double panjangBadan, double tinggiGumba) {
+  final hasil = -736.634 +
+      (4.083793 * lingkarDada) +
+      (2.836318 * panjangBadan) +
+      (0.283673 * tinggiGumba);
+  return hasil < 0 ? 0 : hasil;
 }
 
 double hitungEstimasiPakan(double bobotSapi) {
