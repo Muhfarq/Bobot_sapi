@@ -55,9 +55,11 @@ DateTime hitungTanggalPanen(double waktuBulan, {DateTime? tanggalUkur}) {
   return baseDate.add(Duration(days: totalHari));
 }
 
-List<double> prediksiBobot6Bulan(double bobotSekarang) {
+List<double> prediksiBobotHari(double bobotSekarang, int goalHari) {
+  if (goalHari <= 0) goalHari = 60;
   return List.generate(6, (index) {
-    final bulanKe = index + 1;
-    return bobotSekarang + (adgRealistis * bulanKe * 30);
+    final stepHari = (goalHari / 5) * index;
+    final hasil = bobotSekarang + (adgRealistis * stepHari);
+    return hasil < 0 ? 0 : hasil;
   });
 }

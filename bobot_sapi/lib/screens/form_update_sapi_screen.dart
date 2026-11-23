@@ -463,8 +463,8 @@ class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
               ),
               Expanded(
                 child: _historySubItem(
-                  'Target Bobot',
-                  '${p.targetBobot.toStringAsFixed(0)} kg',
+                  'Tinggi Gumba',
+                  '${p.tinggiGumba.toStringAsFixed(0)} cm',
                 ),
               ),
             ],
@@ -479,7 +479,12 @@ class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
                 ),
               ),
               Expanded(
-                flex: 2,
+                child: _historySubItem(
+                  'Target Bobot',
+                  '${p.targetBobot.toStringAsFixed(0)} kg',
+                ),
+              ),
+              Expanded(
                 child: _historySubItem(
                   'Target Panen (${p.goalHari} Hr)',
                   _formatTanggal(p.tanggalPanen),
@@ -682,10 +687,11 @@ class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
   }
 
   Widget _grafikPrediksiCard() {
-    final List<double> rawData = prediksiBobot6Bulan(_bobotSekarang ?? 0);
+    final int goalHari = _goalHari ?? 60;
+    final List<double> rawData = prediksiBobotHari(_bobotSekarang ?? 0, goalHari);
     final List<FlSpot> spots = List.generate(
       rawData.length,
-      (i) => FlSpot((i + 1).toDouble(), rawData[i]),
+      (i) => FlSpot(i.toDouble(), rawData[i]),
     );
 
     final double minY = (_bobotSekarang ?? 0) - 20;
@@ -702,7 +708,7 @@ class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Prediksi Pertumbuhan 6 Bulan',
+            'Prediksi Pertumbuhan $goalHari Hari',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryGreen),
           ),
           const SizedBox(height: 20),
@@ -711,10 +717,23 @@ class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
             height: 200,
             child: LineChart(
               LineChartData(
-                minX: 1,
-                maxX: 6,
+                minX: 0,
+                maxX: 5,
                 minY: minY < 0 ? 0 : minY,
                 maxY: maxY,
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipItems: (touchedSpots) {
+                      return touchedSpots.map((spot) {
+                        final hari = ((goalHari / 5) * spot.x).toInt();
+                        return LineTooltipItem(
+                          'Hari ke-$hari\n${spot.y.toStringAsFixed(0)} kg',
+                          const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        );
+                      }).toList();
+                    },
+                  ),
+                ),
                 gridData: const FlGridData(show: false),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
@@ -724,10 +743,13 @@ class _FormUpdateSapiScreenState extends State<FormUpdateSapiScreen> {
                     sideTitles: SideTitles(
                       showTitles: true,
                       interval: 1,
-                      getTitlesWidget: (value, meta) => Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Text('+${value.toInt()}B', style: const TextStyle(fontSize: 11)),
-                      ),
+                      getTitlesWidget: (value, meta) {
+                        final hari = ((goalHari / 5) * value).toInt();
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text('$hari H', style: const TextStyle(fontSize: 11)),
+                        );
+                      },
                     ),
                   ),
                   leftTitles: AxisTitles(

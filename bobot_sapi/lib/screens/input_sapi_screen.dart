@@ -448,7 +448,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
   }
 
   Widget _grafikPrediksiCard() {
-    final data = prediksiBobot6Bulan(_bobotSekarang!);
+    final data = prediksiBobotHari(_bobotSekarang!, _goalHari!);
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey.shade200)),
@@ -458,15 +458,28 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Prediksi Pertumbuhan 6 Bulan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryGreen)),
+            Text('Prediksi Pertumbuhan $_goalHari Hari', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryGreen)),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               height: 200,
               child: LineChart(
                 LineChartData(
-                  minX: 1, maxX: 6,
+                  minX: 0, maxX: 5,
                   minY: _bobotSekarang! - 20, maxY: data.last + 40,
+                  lineTouchData: LineTouchData(
+                    touchTooltipData: LineTouchTooltipData(
+                      getTooltipItems: (touchedSpots) {
+                        return touchedSpots.map((spot) {
+                          final hari = ((_goalHari! / 5) * spot.x).toInt();
+                          return LineTooltipItem(
+                            'Hari ke-$hari\n${spot.y.toStringAsFixed(0)} kg',
+                            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          );
+                        }).toList();
+                      },
+                    ),
+                  ),
                   gridData: const FlGridData(show: false),
                   borderData: FlBorderData(show: false),
                   titlesData: FlTitlesData(
@@ -475,7 +488,10 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true, interval: 1,
-                        getTitlesWidget: (value, meta) => Text('+${value.toInt()}B', style: const TextStyle(fontSize: 11)),
+                        getTitlesWidget: (value, meta) {
+                          final hari = ((_goalHari! / 5) * value).toInt();
+                          return Text('$hari H', style: const TextStyle(fontSize: 11));
+                        },
                       ),
                     ),
                     leftTitles: AxisTitles(
@@ -486,7 +502,7 @@ class _InputSapiScreenState extends State<InputSapiScreen> {
                     LineChartBarData(
                       isCurved: true, barWidth: 4, color: accentGreen,
                       dotData: const FlDotData(show: true),
-                      spots: List.generate(data.length, (index) => FlSpot((index + 1).toDouble(), data[index])),
+                      spots: List.generate(data.length, (index) => FlSpot(index.toDouble(), data[index])),
                     ),
                   ],
                 ),

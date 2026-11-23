@@ -221,12 +221,14 @@ class _HitungPakanScreenState extends State<HitungPakanScreen> {
             children: [
               Icon(Icons.add, color: accentGreen, size: 28),
               const SizedBox(width: 8),
-              Text(
-                'Hitung Rekomendasi Pakan',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: labelGreen,
+              Expanded(
+                child: Text(
+                  'Hitung Rekomendasi Pakan',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: labelGreen,
+                  ),
                 ),
               ),
             ],
@@ -252,13 +254,16 @@ class _HitungPakanScreenState extends State<HitungPakanScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      _estimasi == 0 ? '0' : _estimasi.toStringAsFixed(1),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
-                        height: 1.0,
+                    Expanded(
+                      child: Text(
+                        _estimasi == 0 ? '0' : _estimasi.toStringAsFixed(1),
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                          height: 1.0,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -451,13 +456,16 @@ class _HitungPakanScreenState extends State<HitungPakanScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                _totalBK!.toStringAsFixed(1),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                  height: 1.0,
+              Expanded(
+                child: Text(
+                  _totalBK!.toStringAsFixed(1),
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                    height: 1.0,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),

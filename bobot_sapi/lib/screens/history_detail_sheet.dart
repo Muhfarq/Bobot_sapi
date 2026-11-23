@@ -32,7 +32,8 @@ class HistoryDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final data = prediksiBobot6Bulan(pengukuran.bobotSekarang);
+    final int goalHari = pengukuran.goalHari > 0 ? pengukuran.goalHari : 60;
+    final data = prediksiBobotHari(pengukuran.bobotSekarang, goalHari);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.88,
@@ -200,23 +201,37 @@ class HistoryDetailSheet extends StatelessWidget {
   }
 
   Widget _grafikPrediksiCard(List<double> data) {
+    final int goalHari = pengukuran.goalHari > 0 ? pengukuran.goalHari : 60;
     final double minY = pengukuran.bobotSekarang - 20;
 
     return _whiteCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _title('Prediksi Pertumbuhan 6 Bulan'),
+          _title('Prediksi Pertumbuhan $goalHari Hari'),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             height: 260,
             child: LineChart(
               LineChartData(
-                minX: 1,
-                maxX: 6,
+                minX: 0,
+                maxX: 5,
                 minY: minY < 0 ? 0 : minY,
                 maxY: (data.isNotEmpty ? data.last : 100) + 40,
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipItems: (touchedSpots) {
+                      return touchedSpots.map((spot) {
+                        final hari = ((goalHari / 5) * spot.x).toInt();
+                        return LineTooltipItem(
+                          'Hari ke-$hari\n${spot.y.toStringAsFixed(0)} kg',
+                          const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        );
+                      }).toList();
+                    },
+                  ),
+                ),
                 gridData: const FlGridData(show: false),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
@@ -231,9 +246,9 @@ class HistoryDetailSheet extends StatelessWidget {
                       showTitles: true,
                       interval: 1,
                       getTitlesWidget: (value, meta) {
-                        if (value < 1 || value > 6) return const SizedBox();
+                        final hari = ((goalHari / 5) * value).toInt();
                         return Text(
-                          '+${value.toInt()}B',
+                          '$hari H',
                           style: const TextStyle(fontSize: 11),
                         );
                       },
@@ -262,7 +277,7 @@ class HistoryDetailSheet extends StatelessWidget {
                     spots: List.generate(
                       data.length,
                       (index) => FlSpot(
-                        (index + 1).toDouble(),
+                        index.toDouble(),
                         data[index],
                       ),
                     ),
@@ -274,12 +289,13 @@ class HistoryDetailSheet extends StatelessWidget {
           const SizedBox(height: 12),
           Column(
             children: List.generate(data.length, (index) {
+              final hari = ((goalHari / 5) * index).toInt();
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
                     Text(
-                      '+${index + 1} Bulan',
+                      'Hari ke-$hari',
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                     const Spacer(),
